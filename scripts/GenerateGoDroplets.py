@@ -129,9 +129,9 @@ def generateGeneralExeGoDroplet(outputPrefix: str, arch: str, service: bool):
     exebits_env["GO111MODULE"] = "on"
 
     print("[+] Creating " + arch + serviceLogStrin + " exe droplet")
-
+    executionDir = os.path.join(Path(__file__).parent.parent)
     try:
-        popen = subprocess.Popen(args, stdout=subprocess.PIPE, env=exebits_env)
+        popen = subprocess.Popen(args, cwd=executionDir ,stdout=subprocess.PIPE, env=exebits_env)
         popen.wait()
         if popen.stdout != None:
             output = popen.stdout.read()
