@@ -35,7 +35,7 @@ def donutTheExe(binaryPath: str, binaryArg: str):
             print(popen.stderr.read().decode("utf-8"))
         print(e)
         print("[-] Failed to create the shellcode")
-        exit(1)
+        return ""
 
     print("[+] Shellcode Created and saved in " + shellcodePath + "\n")
     return shellcodePath
@@ -105,7 +105,7 @@ def generateDllGoDroplet(outputPrefix:str, arch: str):
             print(popen.stderr.read().decode("utf-8"))
         print(e)
         print("[-] Failed to create " + arch + " dll droplet")
-        exit(1)
+        return ""
 
     print("[+] Created " + arch + " dll droplet in " + dllbitsPath)
     return dllbitsPath
@@ -147,7 +147,7 @@ def generateGeneralExeGoDroplet(outputPrefix: str, arch: str, service: bool):
             print(popen.stderr.read().decode("utf-8"))
         print(e)
         print("[-] Failed to create " + arch + serviceLogStrin + " exe droplet")
-        exit(1)
+        return ""
 
     print("[+] Created " + arch + serviceLogStrin + " exe droplet in " + exebitsPath)
     return exebitsPath
@@ -211,11 +211,11 @@ def main():
             if os.path.isfile(item_path):
                 os.remove(item_path)
         print("[+] Deleted bin/*")
-        exit(0)
+        return
 
     if not args.path:
         print("You need a path. Run help.")
-        exit(1)
+        return
 
     binaryPath = args.path
     binaryArg = args.arg
