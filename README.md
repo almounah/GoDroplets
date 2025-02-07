@@ -21,8 +21,8 @@ It only works on Linux with:
 It generate an exe, a svc and a dll given an exe and some argument. It only work for 64 bits now.
 
 ```
-python3 scripts/GenerateGoDroplets.py --help                                                                                                   
-usage: GenerateGoDroplets.py [-h] [--path PATH] [--arg ARG] [--format {exe,svc,dll,all}] [--output OUTPUT] [--clear]
+python3 GoDroplets.py --help                                                                                                   
+usage: GoDroplets.py [-h] [--path PATH] [--arg ARG] [--format {exe,svc,dll,all}] [--output OUTPUT] [--clear]
 
 Generate the Go droplets given a binary.
 
@@ -35,7 +35,7 @@ options:
   --output OUTPUT       Output File Prefix
   --clear               Just Clear the bin directory. If specified will not build anything.
 
-Example: python3 scripts/GenerateGoDroplets.py --path="/home/kali/Desktop/BeaconHttp.exe" --arg="192.168.1.191 8080 http" --format="all"
+Example: python3 GoDroplets.py --path="/home/kali/Desktop/BeaconHttp.exe" --arg="192.168.1.191 8080 http" --format="all"
 --output="droplet"
 ```
 

